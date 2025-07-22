@@ -1,0 +1,10 @@
+{
+  "assets": [],
+  "name": "interactive-exhibit",
+  "main": "index.html",
+  "window": {
+    "toolbar": true,
+    "frame": true,
+    "kiosk": false
+  }
+} 

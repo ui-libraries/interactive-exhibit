@@ -1,0 +1,88 @@
+/* style.css - Main styles for Interactive Exhibit */
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  color: #222;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Slide container */
+.slide {
+  max-width: 900px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  padding: 32px 24px 24px 24px;
+  text-align: center;
+}
+
+.slide h2 {
+  margin-top: 0;
+  font-size: 2.2em;
+  color: #2a2a2a;
+}
+
+.slide p {
+  font-size: 1.2em;
+  color: #444;
+  margin-bottom: 24px;
+}
+
+.image-container {
+  margin-bottom: 18px;
+}
+
+.image-container img {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  background: #f8f8f8;
+}
+
+.image-controls, .slide-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+button {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover, button:focus {
+  background: #1565c0;
+}
+
+@media (max-width: 600px) {
+  .slide {
+    padding: 12px 4px 16px 4px;
+  }
+  .slide h2 {
+    font-size: 1.3em;
+  }
+  .slide p {
+    font-size: 1em;
+  }
+  .image-container img {
+    max-width: 98vw;
+    max-height: 40vh;
+  }
+} 
