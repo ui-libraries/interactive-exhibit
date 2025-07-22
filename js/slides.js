@@ -1,26 +1,34 @@
 const slides = [
   {
-    title: "Welcome Slide",
-    text: "Welcome to the interactive exhibit!",
-    images: [
-      "assets/images/welcome1.jpg",
-      "assets/images/welcome2.jpg"
+    title: "The Remmelin",
+    description: "A multi-layered anatomical illustration. Explore each layer by cycling through the images.",
+    media: [
+      { type: "image", src: "assets/images/remmelin1.jpg" },
+      { type: "image", src: "assets/images/remmelin2.jpg" },
+      { type: "image", src: "assets/images/remmelin3.jpg" }
     ]
   },
   {
-    title: "History Slide",
-    text: "Learn about the history of our subject.",
-    images: [
-      "assets/images/history1.jpg",
-      "assets/images/history2.jpg",
-      "assets/images/history3.jpg"
+    title: "Fragmentos de Lluvia",
+    description: "A poetic video work exploring the ephemeral nature of rain.",
+    media: [
+      { type: "video", src: "assets/videos/fragmentos.mp4" }
     ]
   },
   {
-    title: "Future Slide",
-    text: "Discover what the future holds!",
-    images: [
-      "assets/images/future1.jpg"
+    title: "Tunnel Book",
+    description: "A three-dimensional book structure. View different perspectives by cycling through the images.",
+    media: [
+      { type: "image", src: "assets/images/tunnelbook1.jpg" },
+      { type: "image", src: "assets/images/tunnelbook2.jpg" },
+      { type: "image", src: "assets/images/tunnelbook3.jpg" }
+    ]
+  },
+  {
+    title: "The Deep",
+    description: "A video journey into the mysterious depths of the ocean.",
+    media: [
+      { type: "video", src: "assets/videos/thedeep.mp4" }
     ]
   }
 ];

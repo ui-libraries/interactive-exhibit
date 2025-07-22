@@ -71,6 +71,139 @@ button:hover, button:focus {
   background: #1565c0;
 }
 
+/* Split container for fullscreen layout */
+.split-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: stretch;
+  align-items: stretch;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.media-side {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  background: #111;
+}
+
+.media-display {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.media-display img, .media-display video {
+  max-width: 98%;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  border-radius: 12px;
+  background: #000;
+  box-shadow: none;
+}
+
+.media-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 18px 0 0 0;
+}
+
+.desc-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 48px 40px;
+  min-width: 0;
+  height: 100%;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.desc-side h2 {
+  margin-top: 0;
+  font-size: 2.8em;
+  color: #2a2a2a;
+}
+
+.desc-side p {
+  font-size: 1.5em;
+  color: #444;
+  margin-bottom: 32px;
+}
+
+.slide-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 48px;
+}
+
+button {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 24px 48px;
+  font-size: 1.5em;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: none;
+  min-width: 180px;
+}
+
+button:active {
+  background: #1251a3;
+}
+
+button:focus {
+  outline: 2px solid #1976d2;
+}
+
+@media (max-width: 900px) {
+  .split-container {
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+    gap: 0;
+  }
+  .desc-side {
+    padding: 24px 8px;
+    align-items: center;
+    text-align: center;
+  }
+  .desc-side h2 {
+    font-size: 1.5em;
+  }
+  .desc-side p {
+    font-size: 1.1em;
+  }
+  .media-display img, .media-display video {
+    max-width: 98vw;
+    max-height: 40vh;
+  }
+}
+
 @media (max-width: 600px) {
   .slide {
     padding: 12px 4px 16px 4px;

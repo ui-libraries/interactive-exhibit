@@ -4,50 +4,73 @@ import slides from './slides.js';
 const app = document.getElementById('app');
 
 let currentSlide = 0;
-let currentImage = 0;
+let currentMedia = 0;
 
 function render() {
   const slide = slides[currentSlide];
-  const imageSrc = slide.images[currentImage];
-  app.innerHTML = `
-    <div class="slide">
-      <h2>${slide.title}</h2>
-      <p>${slide.text}</p>
-      <div class="image-container">
-        <img src="${imageSrc}" alt="${slide.title}" style="max-width: 80vw; max-height: 60vh; display: block; margin: 0 auto;" />
-        <div class="image-controls">
-          <button id="prev-image">Previous Image</button>
-          <span>Image ${currentImage + 1} of ${slide.images.length}</span>
-          <button id="next-image">Next Image</button>
-        </div>
+  const mediaItem = slide.media[currentMedia];
+
+  // Media display (image or video)
+  let mediaHtml = '';
+  if (mediaItem.type === 'image') {
+    mediaHtml = `<img src="${mediaItem.src}" alt="${slide.title}" style="max-width: 100%; max-height: 70vh; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); background: #f8f8f8;" />`;
+  } else if (mediaItem.type === 'video') {
+    mediaHtml = `<video src="${mediaItem.src}" controls style="max-width: 100%; max-height: 70vh; border-radius: 12px; background: #000;" preload="auto"></video>`;
+  }
+
+  // Media navigation controls (only if more than one media item)
+  let mediaControls = '';
+  if (slide.media.length > 1) {
+    mediaControls = `
+      <div class="media-controls">
+        <button id="prev-media">Previous</button>
+        <span>${currentMedia + 1} of ${slide.media.length}</span>
+        <button id="next-media">Next</button>
       </div>
-      <div class="slide-controls">
-        <button id="prev-slide">Previous Slide</button>
-        <span>Slide ${currentSlide + 1} of ${slides.length}</span>
-        <button id="next-slide">Next Slide</button>
+    `;
+  }
+
+  app.innerHTML = `
+    <div class="split-container">
+      <div class="media-side">
+        <div class="media-display">
+          ${mediaHtml}
+        </div>
+        ${mediaControls}
+      </div>
+      <div class="desc-side">
+        <h2>${slide.title}</h2>
+        <p>${slide.description}</p>
+        <div class="slide-controls">
+          <button id="prev-slide">Previous Work</button>
+          <span>Work ${currentSlide + 1} of ${slides.length}</span>
+          <button id="next-slide">Next Work</button>
+        </div>
       </div>
     </div>
   `;
 
-  // Image navigation
-  document.getElementById('prev-image').onclick = () => {
-    currentImage = (currentImage - 1 + slide.images.length) % slide.images.length;
-    render();
-  };
-  document.getElementById('next-image').onclick = () => {
-    currentImage = (currentImage + 1) % slide.images.length;
-    render();
-  };
+  // Media navigation
+  if (slide.media.length > 1) {
+    document.getElementById('prev-media').onclick = () => {
+      currentMedia = (currentMedia - 1 + slide.media.length) % slide.media.length;
+      render();
+    };
+    document.getElementById('next-media').onclick = () => {
+      currentMedia = (currentMedia + 1) % slide.media.length;
+      render();
+    };
+  }
 
   // Slide navigation
   document.getElementById('prev-slide').onclick = () => {
     currentSlide = (currentSlide - 1 + slides.length) % slides.length;
-    currentImage = 0;
+    currentMedia = 0;
     render();
   };
   document.getElementById('next-slide').onclick = () => {
     currentSlide = (currentSlide + 1) % slides.length;
-    currentImage = 0;
+    currentMedia = 0;
     render();
   };
 }
