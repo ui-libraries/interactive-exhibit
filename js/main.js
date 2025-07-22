@@ -13,9 +13,22 @@ function render() {
   // Media display (image or video)
   let mediaHtml = '';
   if (mediaItem.type === 'image') {
-    mediaHtml = `<img src="${mediaItem.src}" alt="${slide.title}" style="max-width: 100%; max-height: 70vh; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); background: #f8f8f8;" />`;
+    mediaHtml = `<img src="${mediaItem.src}" alt="${slide.title}" style="max-width: 100%; max-height: 70vh; border-radius: 12px; box-shadow: none; background: #fff;" />`;
   } else if (mediaItem.type === 'video') {
-    mediaHtml = `<video src="${mediaItem.src}" controls style="max-width: 100%; max-height: 70vh; border-radius: 12px; background: #000;" preload="auto"></video>`;
+    mediaHtml = `<video src="${mediaItem.src}" controls autoplay muted style="max-width: 100%; max-height: 70vh; border-radius: 12px; background: #000;" preload="auto"></video>`;
+  } else if (mediaItem.type === 'youtube') {
+    mediaHtml = `
+      <iframe
+        width="100%"
+        height="500"
+        src="https://www.youtube.com/embed/${mediaItem.src}?autoplay=1&controls=1&rel=0"
+        title="YouTube video player"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+        style="max-width: 100%; max-height: 70vh; border-radius: 12px; background: #000;"
+      ></iframe>
+    `;
   }
 
   // Media navigation controls (only if more than one media item)

@@ -96,7 +96,7 @@ button:hover, button:focus {
   align-items: center;
   min-width: 0;
   height: 100%;
-  background: #111;
+  background: #fff;
 }
 
 .media-display {

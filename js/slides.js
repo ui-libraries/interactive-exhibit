@@ -3,25 +3,28 @@ const slides = [
     title: "The Remmelin",
     description: "A multi-layered anatomical illustration. Explore each layer by cycling through the images.",
     media: [
-      { type: "image", src: "assets/images/remmelin1.jpg" },
-      { type: "image", src: "assets/images/remmelin2.jpg" },
-      { type: "image", src: "assets/images/remmelin3.jpg" }
+      { type: "video", src: "assets/videos/remmelin/Remmelin_man.mp4" },
+      { type: "video", src: "assets/videos/remmelin/Remmelin_plate_clouds.mp4" },
+      { type: "video", src: "assets/videos/remmelin/Remmelin_plate_eye.mp4" },
+      { type: "video", src: "assets/videos/remmelin/Remmelin_plate_man.mp4" },
+      { type: "video", src: "assets/videos/remmelin/Remmelin_plate_torso.mp4" },
+      { type: "video", src: "assets/videos/remmelin/Remmelin_plate_torso.mp4" },
+      { type: "video", src: "assets/videos/remmelin/Remmelin_plate_woman.mp4" },
+      { type: "video", src: "assets/videos/remmelin/Remmelin_woman.mp4" }
     ]
   },
   {
     title: "Fragmentos de Lluvia",
     description: "A poetic video work exploring the ephemeral nature of rain.",
     media: [
-      { type: "video", src: "assets/videos/fragmentos.mp4" }
+      { type: "youtube", src: "4VnklQsnxd0" }
     ]
   },
   {
     title: "Tunnel Book",
-    description: "A three-dimensional book structure. View different perspectives by cycling through the images.",
+    description: "A three-dimensional book structure. View different perspectives by cycling through the video.",
     media: [
-      { type: "image", src: "assets/images/tunnelbook1.jpg" },
-      { type: "image", src: "assets/images/tunnelbook2.jpg" },
-      { type: "image", src: "assets/images/tunnelbook3.jpg" }
+      { type: "video", src: "assets/videos/tunnel-book/tunnelbook.webm" }
     ]
   },
   {
