@@ -1,5 +1,6 @@
 import { loadManifest } from './loader.js'
 import slides from './slides.js';
+import { init3DViewer } from './3d-viewer.js';
 
 const app = document.getElementById('app');
 
@@ -29,6 +30,8 @@ function render() {
         style="max-width: 100%; max-height: 70vh; border-radius: 12px; background: #000;"
       ></iframe>
     `;
+  } else if (mediaItem.type === '3d') {
+    mediaHtml = `<div id="3d-container" style="width: 100%; height: 70vh; background: #f0f0f0; border-radius: 12px;"></div>`;
   }
 
   // Media navigation controls (only if more than one media item)
@@ -62,6 +65,14 @@ function render() {
       </div>
     </div>
   `;
+
+  // Initialize 3D viewer if needed
+  if (mediaItem.type === '3d') {
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      init3DViewer('3d-container', mediaItem.src);
+    }, 100);
+  }
 
   // Media navigation
   if (slide.media.length > 1) {

@@ -24,7 +24,14 @@ const slides = [
     title: "Tunnel Book",
     description: "A three-dimensional book structure. View different perspectives by cycling through the video.",
     media: [
-      { type: "video", src: "assets/videos/tunnel-book/tunnelbook.webm" }
+      { type: "video", src: "assets/videos/tunnelbook.webm" }
+    ]
+  },
+  {
+    title: "3D Model Viewer",
+    description: "Interactive 3D model viewer. Drag to rotate the model.",
+    media: [
+      { type: "3d", src: "assets/models/cessna.obj" }
     ]
   },
   {
