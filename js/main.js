@@ -1,11 +1,32 @@
 import { loadManifest } from './loader.js'
 import slides from './slides.js';
-import { init3DViewer } from './3d-viewer.js';
+import { init3DViewer, preload3DModel } from './3d-viewer.js';
 
 const app = document.getElementById('app');
 
 let currentSlide = 0;
 let currentMedia = 0;
+
+// Preload 3D models
+async function preload3DModels() {
+  console.log('[App] Starting 3D model preload...');
+  let preloadCount = 0;
+  for (const slide of slides) {
+    for (const mediaItem of slide.media) {
+      if (mediaItem.type === '3d') {
+        preloadCount++;
+        console.log(`[App] Preloading 3D model ${preloadCount}:`, mediaItem.src);
+        try {
+          await preload3DModel(mediaItem.src);
+          console.log('[App] Successfully preloaded 3D model:', mediaItem.src);
+        } catch (error) {
+          console.error('[App] Failed to preload 3D model:', mediaItem.src, error);
+        }
+      }
+    }
+  }
+  console.log(`[App] 3D model preload complete. Processed ${preloadCount} models.`);
+}
 
 function render() {
   const slide = slides[currentSlide];
@@ -14,24 +35,39 @@ function render() {
   // Media display (image or video)
   let mediaHtml = '';
   if (mediaItem.type === 'image') {
-    mediaHtml = `<img src="${mediaItem.src}" alt="${slide.title}" style="max-width: 100%; max-height: 70vh; border-radius: 12px; box-shadow: none; background: #fff;" />`;
+    mediaHtml = `<img class="media-asset" src="${mediaItem.src}" alt="${slide.title}" />`;
   } else if (mediaItem.type === 'video') {
-    mediaHtml = `<video src="${mediaItem.src}" controls autoplay muted style="max-width: 100%; max-height: 70vh; border-radius: 12px; background: #000;" preload="auto"></video>`;
+    const loopAttr = mediaItem.loop ? 'loop' : '';
+    mediaHtml = `<video class="media-asset" src="${mediaItem.src}" controls autoplay muted preload="auto" width="100%" height="100%" ${loopAttr}></video>`;
   } else if (mediaItem.type === 'youtube') {
     mediaHtml = `
       <iframe
+        class="media-asset"
         width="100%"
-        height="500"
+        height="100%"
         src="https://www.youtube.com/embed/${mediaItem.src}?autoplay=1&controls=1&rel=0"
         title="YouTube video player"
         frameborder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowfullscreen
-        style="max-width: 100%; max-height: 70vh; border-radius: 12px; background: #000;"
       ></iframe>
     `;
   } else if (mediaItem.type === '3d') {
-    mediaHtml = `<div id="3d-container" style="width: 100%; height: 70vh; background: #f0f0f0; border-radius: 12px;"></div>`;
+    mediaHtml = `
+      <div id="3d-container" class="three-container">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: white;">
+          <div style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid white; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+          <div style="font-size: 18px; font-weight: 500;">Loading 3D Model...</div>
+          <div style="font-size: 14px; opacity: 0.8; margin-top: 8px;">This may take a few moments</div>
+        </div>
+        <style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      </div>
+    `;
   }
 
   // Media navigation controls (only if more than one media item)
@@ -39,28 +75,38 @@ function render() {
   if (slide.media.length > 1) {
     mediaControls = `
       <div class="media-controls">
-        <button id="prev-media">Previous</button>
-        <span>${currentMedia + 1} of ${slide.media.length}</span>
-        <button id="next-media">Next</button>
+        <button id="prev-media">
+          <img src="assets/images/back-button.svg" alt="Previous" />
+        </button>
+        <span class="counter">${currentMedia + 1} of ${slide.media.length}</span>
+        <button id="next-media">
+          <img src="assets/images/next-button.svg" alt="Next" />
+        </button>
       </div>
     `;
   }
 
   app.innerHTML = `
     <div class="split-container">
+      <div class="logo-container">
+        <img src="assets/images/logo.png" alt="Logo" />
+      </div>
       <div class="media-side">
         <div class="media-display">
           ${mediaHtml}
         </div>
-        ${mediaControls}
-      </div>
-      <div class="desc-side">
-        <h2>${slide.title}</h2>
-        <p>${slide.description}</p>
-        <div class="slide-controls">
-          <button id="prev-slide">Previous Work</button>
-          <span>Work ${currentSlide + 1} of ${slides.length}</span>
-          <button id="next-slide">Next Work</button>
+        <div class="desc-side">
+          <h2>${slide.title}</h2>
+          <p>${slide.description}</p>
+          <div class="slide-controls">
+            <button id="prev-slide">
+              <img src="assets/images/back-button.svg" alt="Previous Work" />
+            </button>
+            <span class="counter">Work ${currentSlide + 1} of ${slides.length}</span>
+            <button id="next-slide">
+              <img src="assets/images/next-button.svg" alt="Next Work" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -70,20 +116,9 @@ function render() {
   if (mediaItem.type === '3d') {
     // Small delay to ensure DOM is ready
     setTimeout(() => {
+      console.log('[App] Initializing 3D viewer for:', mediaItem.src);
       init3DViewer('3d-container', mediaItem.src);
     }, 100);
-  }
-
-  // Media navigation
-  if (slide.media.length > 1) {
-    document.getElementById('prev-media').onclick = () => {
-      currentMedia = (currentMedia - 1 + slide.media.length) % slide.media.length;
-      render();
-    };
-    document.getElementById('next-media').onclick = () => {
-      currentMedia = (currentMedia + 1) % slide.media.length;
-      render();
-    };
   }
 
   // Slide navigation
@@ -102,6 +137,9 @@ function render() {
 render();
 
 loadManifest('/manifest.json', app)
+
+// Preload 3D models in the background
+preload3DModels().catch(console.error);
 
 // Add keyboard shortcut to quit NW.js app during development
 if (typeof nw !== "undefined") {

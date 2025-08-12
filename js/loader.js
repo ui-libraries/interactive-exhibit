@@ -2,7 +2,10 @@ export async function loadManifest(path, container) {
   const res = await fetch(path)
   const manifest = await res.json()
 
-  for (let item of manifest) {
+  const items = Array.isArray(manifest) ? manifest : Array.isArray(manifest.assets) ? manifest.assets : null
+  if (!items) return
+
+  for (let item of items) {
     switch (item.type) {
       case 'text':
         const p = document.createElement('p')
