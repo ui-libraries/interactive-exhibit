@@ -123,6 +123,27 @@ body {
   margin-top: 24px;
 }
 
+.desc-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 24px;
+  width: 100%;
+}
+
+.desc-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 24px 32px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
 .desc-side h2 {
   margin: 0 0 12px 0;
   font-family: "Hanken Grotesk", sans-serif;

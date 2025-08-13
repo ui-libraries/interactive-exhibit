@@ -36,9 +36,10 @@ function render() {
   let mediaHtml = '';
   if (mediaItem.type === 'image') {
     mediaHtml = `<img class="media-asset" src="${mediaItem.src}" alt="${slide.title}" />`;
-  } else if (mediaItem.type === 'video') {
-    const loopAttr = mediaItem.loop ? 'loop' : '';
-    mediaHtml = `<video class="media-asset" src="${mediaItem.src}" controls autoplay muted preload="auto" width="100%" height="100%" ${loopAttr}></video>`;
+          } else if (mediaItem.type === 'video') {
+          const loopAttr = mediaItem.loop ? 'loop' : '';
+          const volumeAttr = mediaItem.src.includes('thedeep.mp4') ? 'data-volume="0.7"' : '';
+          mediaHtml = `<video class="media-asset" src="${mediaItem.src}" controls autoplay preload="auto" width="100%" height="100%" ${loopAttr} ${volumeAttr}></video>`;
   } else if (mediaItem.type === 'youtube') {
     mediaHtml = `
       <iframe
@@ -95,18 +96,20 @@ function render() {
         <div class="media-display">
           ${mediaHtml}
         </div>
-        <div class="desc-side">
-          <h2>${slide.title}</h2>
-          <p>${slide.description}</p>
-          <div class="slide-controls">
-            <button id="prev-slide">
-              <img src="assets/images/back-button.svg" alt="Previous Work" />
-            </button>
-            <span class="counter">Work ${currentSlide + 1} of ${slides.length}</span>
-            <button id="next-slide">
-              <img src="assets/images/next-button.svg" alt="Next Work" />
-            </button>
+        <div class="desc-container">
+          <button id="prev-slide">
+            <img src="assets/images/back-button.svg" alt="Previous Work" />
+          </button>
+          <div class="desc-content">
+            <h2>${slide.title}</h2>
+            <p>${slide.description}</p>
+            <div class="slide-controls">
+              <span class="counter">Work ${currentSlide + 1} of ${slides.length}</span>
+            </div>
           </div>
+          <button id="next-slide">
+            <img src="assets/images/next-button.svg" alt="Next Work" />
+          </button>
         </div>
       </div>
     </div>
@@ -119,6 +122,18 @@ function render() {
       console.log('[App] Initializing 3D viewer for:', mediaItem.src);
       init3DViewer('3d-container', mediaItem.src);
     }, 100);
+  }
+  
+  // Set volume for specific videos after they load
+  if (mediaItem.type === 'video') {
+    setTimeout(() => {
+      const video = document.querySelector('.media-asset');
+      if (video && video.tagName === 'VIDEO') {
+        if (mediaItem.src.includes('thedeep.mp4')) {
+          video.volume = 0.7; // 30% lower volume
+        }
+      }
+    }, 200);
   }
 
   // Slide navigation
