@@ -109,24 +109,12 @@ body {
   white-space: nowrap;
 }
 
-.desc-side {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
-  min-width: 0;
-  padding: 24px 32px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-soft);
-  margin-top: 24px;
-}
+
 
 .desc-container {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   margin-top: 24px;
   width: 100%;
 }
@@ -138,26 +126,26 @@ body {
   justify-content: flex-start;
   align-items: flex-start;
   min-width: 0;
-  padding: 24px 32px;
+  padding: 36px 48px;
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-soft);
 }
 
-.desc-side h2 {
-  margin: 0 0 12px 0;
+.desc-content h2 {
+  margin: 0 0 16px 0;
   font-family: "Hanken Grotesk", sans-serif;
   font-weight: 900;
-  font-size: clamp(24px, 2.5vw, 32px);
+  font-size: clamp(28px, 3vw, 40px);
   letter-spacing: -0.02em;
   color: var(--text);
 }
 
-.desc-side p {
-  margin: 0 0 20px 0;
+.desc-content p {
+  margin: 0 0 24px 0;
   font-family: "Mr Eaves Sans", sans-serif;
   font-weight: 400;
-  font-size: clamp(16px, 1.2vw, 18px);
+  font-size: clamp(18px, 1.4vw, 22px);
   line-height: 1.5;
   color: var(--text);
 }
@@ -180,8 +168,10 @@ button {
   padding: 0;
   cursor: pointer;
   transition: transform 0.06s ease, filter 0.2s ease;
-  min-width: 60px;
-  min-height: 60px;
+  min-width: 175px !important;
+  min-height: 175px !important;
+  width: 175px !important;
+  height: 175px !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,7 +246,7 @@ button:focus-visible {
   .media-display {
     min-height: 50vh;
   }
-  .desc-side { 
+  .desc-content { 
     align-items: center; 
     text-align: center; 
     max-height: none;
@@ -280,7 +270,7 @@ button:focus-visible {
   .media-display {
     min-height: 40vh;
   }
-  .desc-side {
+  .desc-content {
     padding: 20px 24px;
   }
   .logo-container {
@@ -289,10 +279,10 @@ button:focus-visible {
   .logo-container img {
     max-height: 150px;
   }
-  .desc-side h2 {
+  .desc-content h2 {
     font-size: clamp(20px, 4vw, 28px);
   }
-  .desc-side p {
+  .desc-content p {
     font-size: clamp(14px, 3vw, 18px);
   }
 }
@@ -300,7 +290,9 @@ button:focus-visible {
 @media (pointer: coarse) {
   .slide-controls, .media-controls { gap: 24px; }
   button { 
-    min-width: 80px;
-    min-height: 80px;
+    min-width: 175px !important;
+    min-height: 175px !important;
+    width: 175px !important;
+    height: 175px !important;
   }
 }
