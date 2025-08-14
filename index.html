@@ -6,14 +6,12 @@
     <title>Exhibit</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="css/style.css" />
-    <!-- Three.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- OBJLoader for Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <!-- MTLLoader for materials/textures with OBJ -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
-    <!-- GLTFLoader for modern PBR models -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- Meshopt decoder (non-module) must be global BEFORE model-viewer -->
+    <script src="https://cdn.jsdelivr.net/npm/meshoptimizer@0.18.1/meshopt_decoder.js"></script>
+    <script>self.MeshoptDecoder = window.MeshoptDecoder;</script>
+    <!-- model-viewer (module) -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer@3.3.0/dist/model-viewer.min.js"></script>
+
   </head>
   <body>
     <div id="app"></div>

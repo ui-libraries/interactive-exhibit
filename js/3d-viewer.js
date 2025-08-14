@@ -4,6 +4,133 @@
 // Cache for loaded 3D models
 const modelCache = new Map();
 
+// Ensure external loader scripts exist and build a configured GLTFLoader
+function ensureScriptLoaded(src) {
+  return new Promise((resolve, reject) => {
+    const existing = Array.from(document.scripts).find((s) => s.src === src);
+    if (existing) {
+      // If a matching script tag exists, assume it's already executed
+      return resolve();
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureAnyScriptLoaded(urls) {
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      await ensureScriptLoaded(url);
+      return true;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  if (lastError) throw lastError;
+  return false;
+}
+
+async function ensureModelViewerLoaded() {
+  const tag = 'script[data-model-viewer]';
+  if (document.querySelector(tag)) return true;
+  try {
+    // 1) Ensure Meshopt decoder is present for meshopt-compressed GLBs
+    if (typeof window.MeshoptDecoder === 'undefined') {
+      const m = document.createElement('script');
+      m.src = 'https://unpkg.com/meshoptimizer@0.18.1/meshopt_decoder.js';
+      await new Promise((res, rej) => { m.onload = res; m.onerror = rej; document.head.appendChild(m); });
+      // Ensure global is assigned in all builds
+      try {
+        const g = window;
+        if (!g.MeshoptDecoder && g.meshopt_decoder) g.MeshoptDecoder = g.meshopt_decoder;
+        if (!g.MeshoptDecoder && typeof MeshoptDecoder !== 'undefined') g.MeshoptDecoder = MeshoptDecoder;
+      } catch (_) {}
+    }
+    // 2) Load UMD build of model-viewer (non-module) to avoid ESM issues
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@google/model-viewer@3.3.0/dist/model-viewer-umd.js';
+    script.setAttribute('data-model-viewer', 'true');
+    await new Promise((res, rej) => { script.onload = res; script.onerror = rej; document.head.appendChild(script); });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+let sharedGLTFLoader = null;
+
+async function configureLoaderExtensions(loader, renderer) {
+  // KTX2
+  const KTX2LoaderCtor = (typeof THREE !== 'undefined' && THREE.KTX2Loader) || (typeof window !== 'undefined' && window.KTX2Loader) || null;
+  if (!loader.ktx2Loader && KTX2LoaderCtor) {
+    const ktx2 = new KTX2LoaderCtor()
+      .setTranscoderPath('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/libs/basis/')
+      .detectSupport(renderer);
+    loader.setKTX2Loader(ktx2);
+  }
+  // Draco
+  const DRACOLoaderCtor = (typeof THREE !== 'undefined' && THREE.DRACOLoader) || (typeof window !== 'undefined' && window.DRACOLoader) || null;
+  if (DRACOLoaderCtor && !loader.dracoLoader) {
+    const draco = new DRACOLoaderCtor().setDecoderPath('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/libs/draco/');
+    loader.setDRACOLoader(draco);
+  }
+  // Meshopt
+  if (typeof loader.setMeshoptDecoder === 'function') {
+    let meshopt = (typeof window !== 'undefined' && (window.MeshoptDecoder || window.meshopt_decoder)) || null;
+    if (meshopt) {
+      try { if (meshopt.ready && typeof meshopt.ready.then === 'function') await meshopt.ready; } catch (_) {}
+      loader.setMeshoptDecoder(meshopt);
+    }
+  }
+}
+
+async function createConfiguredGLTFLoader(renderer) {
+  if (typeof THREE === 'undefined') {
+    return null;
+  }
+  // Prefer already-loaded constructors; do not fetch from network here
+  if (typeof THREE.GLTFLoader === 'undefined' && typeof window !== 'undefined' && typeof window.GLTFLoader !== 'undefined') {
+    // Some builds attach to window, copy onto THREE for consistency
+    THREE.GLTFLoader = window.GLTFLoader;
+  }
+  if (typeof THREE.GLTFLoader === 'undefined') {
+    return null;
+  }
+
+  // Dynamically load KTX2Loader if it isn't available yet
+  let hasKTX2OnTHREE = typeof THREE.KTX2Loader !== 'undefined';
+  let hasKTX2OnWindow = typeof window !== 'undefined' && typeof window.KTX2Loader !== 'undefined';
+  if (!hasKTX2OnTHREE && hasKTX2OnWindow) {
+    THREE.KTX2Loader = window.KTX2Loader;
+  }
+
+  const loader = new THREE.GLTFLoader();
+  // Force-enable KHR_texture_basisu extension in parser once KTX2 is set
+
+  await configureLoaderExtensions(loader, renderer);
+
+  // Ensure Meshopt/Draco ready too (uses already-loaded globals if any)
+  await configureLoaderExtensions(loader, renderer);
+
+  return loader;
+}
+
+async function getSharedGLTFLoader(renderer) {
+  if (!sharedGLTFLoader) {
+    sharedGLTFLoader = await createConfiguredGLTFLoader(renderer);
+  }
+  // Reconfigure on every access in case decoders became available after first creation
+  if (sharedGLTFLoader) {
+    await configureLoaderExtensions(sharedGLTFLoader, renderer);
+  }
+  return sharedGLTFLoader;
+}
+
 export function init3DViewer(containerId, modelPath) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -225,14 +352,46 @@ export function init3DViewer(containerId, modelPath) {
   directionalLight2.position.set(-1, -1, -1);
   scene.add(directionalLight2);
   
-  // Loaders
-  const objLoader = new THREE.OBJLoader();
-  const mtlLoader = typeof THREE.MTLLoader !== 'undefined' ? new THREE.MTLLoader() : null;
-  const gltfLoader = typeof THREE.GLTFLoader !== 'undefined' ? new THREE.GLTFLoader() : null;
+  // Loaders (lazy)
+  let objLoader = null;
+  let mtlLoader = null;
+  let gltfLoader = null;
   
   // Global debug for asset load errors
   const manager = THREE.DefaultLoadingManager;
   manager.onError = (url) => console.warn('[3D] Asset load error:', url);
+  
+  async function getObjLoader() {
+    if (objLoader) return objLoader;
+    let OBJLoaderCtor = (typeof THREE !== 'undefined' && THREE.OBJLoader) || (typeof window !== 'undefined' && window.OBJLoader) || null;
+    if (!OBJLoaderCtor) {
+      await ensureScriptLoaded('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/OBJLoader.js');
+      OBJLoaderCtor = (typeof THREE !== 'undefined' && THREE.OBJLoader) || (typeof window !== 'undefined' && window.OBJLoader) || null;
+      if (!OBJLoaderCtor && typeof window !== 'undefined' && typeof window.OBJLoader !== 'undefined') {
+        THREE.OBJLoader = window.OBJLoader;
+        OBJLoaderCtor = THREE.OBJLoader;
+      }
+    }
+    if (!OBJLoaderCtor) return null;
+    objLoader = new OBJLoaderCtor();
+    return objLoader;
+  }
+
+  async function getMtlLoader() {
+    if (mtlLoader) return mtlLoader;
+    let MTLLoaderCtor = (typeof THREE !== 'undefined' && THREE.MTLLoader) || (typeof window !== 'undefined' && window.MTLLoader) || null;
+    if (!MTLLoaderCtor) {
+      await ensureScriptLoaded('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/MTLLoader.js');
+      MTLLoaderCtor = (typeof THREE !== 'undefined' && THREE.MTLLoader) || (typeof window !== 'undefined' && window.MTLLoader) || null;
+      if (!MTLLoaderCtor && typeof window !== 'undefined' && typeof window.MTLLoader !== 'undefined') {
+        THREE.MTLLoader = window.MTLLoader;
+        MTLLoaderCtor = THREE.MTLLoader;
+      }
+    }
+    if (!MTLLoaderCtor) return null;
+    mtlLoader = new MTLLoaderCtor();
+    return mtlLoader;
+  }
   
   // Define finalizeWithObject function for loading
   const finalizeWithObject = (container, loadedObject, scene, camera, renderer) => {
@@ -394,15 +553,70 @@ export function init3DViewer(containerId, modelPath) {
     instructions.innerHTML = 'Drag: Rotate | Pinch: Zoom | Mouse wheel: Zoom | Z/X: Zoom';
     container.appendChild(instructions);
   };
-  
-  const loadGLTF = () => {
-    if (!gltfLoader) {
+      
+  const loadGLTF = async () => {
+    if (typeof THREE.GLTFLoader === 'undefined') {
+      // Fallback: render via <model-viewer> to unblock textures flow
+      const ok = await ensureModelViewerLoaded();
+      if (ok) {
+        container.innerHTML = '';
+        const mv = document.createElement('model-viewer');
+        mv.setAttribute('src', modelPath);
+        mv.setAttribute('style', 'width:100%;height:100%;background:#f0f0f0');
+        mv.setAttribute('camera-controls', '');
+        mv.setAttribute('exposure', '1');
+        mv.setAttribute('interaction-prompt', 'none');
+        container.appendChild(mv);
+        return;
+      }
       console.error('GLTFLoader not available');
-      loadObjOnly();
+      container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">GLTF loader unavailable. Ensure GLTFLoader.js is loaded.</p>';
       return;
     }
-    
-    gltfLoader.load(
+    const loader = new THREE.GLTFLoader();
+    // Ensure KTX2 is set on THIS instance before load
+    let KTX2Ctor = (THREE && THREE.KTX2Loader) || (typeof window !== 'undefined' && window.KTX2Loader) || null;
+    if (!KTX2Ctor) {
+      try {
+        await ensureAnyScriptLoaded([
+          'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/KTX2Loader.js',
+          'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/KTX2Loader.js'
+        ]);
+        KTX2Ctor = (THREE && THREE.KTX2Loader) || (typeof window !== 'undefined' && window.KTX2Loader) || null;
+      } catch (_) {}
+    }
+    if (KTX2Ctor && typeof loader.setKTX2Loader === 'function') {
+      const ktx2 = new KTX2Ctor().setTranscoderPath('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/libs/basis/').detectSupport(renderer);
+      loader.setKTX2Loader(ktx2);
+    }
+    // Draco
+    const DracoCtor = (THREE && THREE.DRACOLoader) || (typeof window !== 'undefined' && window.DRACOLoader) || null;
+    if (DracoCtor && typeof loader.setDRACOLoader === 'function') {
+      const draco = new DracoCtor().setDecoderPath('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/libs/draco/');
+      loader.setDRACOLoader(draco);
+    }
+    // Meshopt
+    if (typeof loader.setMeshoptDecoder === 'function') {
+      const meshopt = (typeof window !== 'undefined' && (window.MeshoptDecoder || window.meshopt_decoder)) || null;
+      if (meshopt) {
+        try { if (meshopt.ready && typeof meshopt.ready.then === 'function') await meshopt.ready; } catch (_) {}
+        loader.setMeshoptDecoder(meshopt);
+      }
+    }
+
+    // Last-resort: stub KHR_texture_basisu to avoid hard failure if KTX2 still not attached
+    if (!loader.ktx2Loader && typeof loader.register === 'function') {
+      loader.register(() => ({
+        name: 'KHR_texture_basisu',
+        loadTexture: async () => {
+          const tex = new THREE.Texture();
+          tex.needsUpdate = true;
+          return tex;
+        }
+      }));
+    }
+
+    loader.load(
       modelPath,
       (gltf) => {
         console.log('[3D] GLTF loaded successfully:', gltf);
@@ -420,13 +634,19 @@ export function init3DViewer(containerId, modelPath) {
       },
       (error) => {
         console.error('Error loading GLTF model:', error);
-        loadObjOnly();
+        container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Failed to load GLB/GLTF. Check KTX2/Draco decoders and paths.</p>';
       }
     );
   };
 
-  const loadObjOnly = () => {
-    objLoader.load(
+  const loadObjOnly = async () => {
+    const loader = await getObjLoader();
+    if (!loader) {
+      console.error('OBJLoader not available');
+      container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">OBJ loader unavailable.</p>';
+      return;
+    }
+    loader.load(
       modelPath,
       (loadedObject) => {
         // Cache the loaded model
@@ -448,8 +668,13 @@ export function init3DViewer(containerId, modelPath) {
     );
   };
 
-  const tryLoadWithMtl = () => {
-    if (!mtlLoader || !/\.obj$/i.test(modelPath)) {
+  const tryLoadWithMtl = async () => {
+    if (!/\.obj$/i.test(modelPath)) {
+      loadObjOnly();
+      return;
+    }
+    const mtlLoader = await getMtlLoader();
+    if (!mtlLoader) {
       loadObjOnly();
       return;
     }
@@ -475,12 +700,15 @@ export function init3DViewer(containerId, modelPath) {
       }
       mtlLoader.load(
         mtlPath,
-        (materials) => {
+        async (materials) => {
           if (materials && materials.materialsInfo) {
             console.log('[3D] MTL materialsInfo:', JSON.parse(JSON.stringify(materials.materialsInfo)));
           }
           try { materials.preload(); } catch (_) {}
-          objLoader.setMaterials(materials);
+          const objL = await getObjLoader();
+          if (objL && typeof objL.setMaterials === 'function') {
+            objL.setMaterials(materials);
+          }
           loadObjOnly();
         },
         undefined,
@@ -512,7 +740,7 @@ export function preload3DModel(modelPath) {
     return Promise.resolve();
   }
   
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     // Create a temporary container for preloading
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'absolute';
@@ -525,9 +753,20 @@ export function preload3DModel(modelPath) {
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(1, 1);
+    const gltfLoader = await getSharedGLTFLoader(renderer);
     
-    const gltfLoader = typeof THREE.GLTFLoader !== 'undefined' ? new THREE.GLTFLoader() : null;
-    const objLoader = new THREE.OBJLoader();
+    const objLoader = await (async () => {
+      let ctor = (typeof THREE !== 'undefined' && THREE.OBJLoader) || (typeof window !== 'undefined' && window.OBJLoader) || null;
+      if (!ctor) {
+        await ensureScriptLoaded('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/OBJLoader.js');
+        ctor = (typeof THREE !== 'undefined' && THREE.OBJLoader) || (typeof window !== 'undefined' && window.OBJLoader) || null;
+      }
+      return ctor ? new ctor() : null;
+    })();
+    
+    if (!objLoader && /\.obj$/i.test(modelPath)) {
+      return onError(new Error('OBJLoader unavailable'));
+    }
     
     const onLoad = (loadedObject) => {
       // Cache the loaded model
@@ -542,14 +781,22 @@ export function preload3DModel(modelPath) {
       resolve();
     };
     
-    const onError = (error) => {
+    const onError = async (error) => {
       document.body.removeChild(tempContainer);
       console.error('[3D] Preload error:', error);
       reject(error);
     };
     
-    if (/\.(glb|gltf)$/i.test(modelPath) && gltfLoader) {
-      gltfLoader.load(modelPath, (gltf) => onLoad(gltf.scene), undefined, onError);
+    if (/\.(glb|gltf)$/i.test(modelPath)) {
+      // Simple HTTP prefetch only, to avoid loader extension races in preload
+      try {
+        await fetch(modelPath, { cache: 'reload' });
+        document.body.removeChild(tempContainer);
+        console.log('[3D] GLB prefetched (HTTP only, no GLTF parsing):', modelPath);
+        resolve();
+      } catch (e) {
+        onError(e);
+      }
     } else if (/\.obj$/i.test(modelPath)) {
       objLoader.load(modelPath, onLoad, undefined, onError);
     } else {

@@ -1,13 +1,30 @@
 import { loadManifest } from './loader.js'
 import slides from './slides.js';
-import { init3DViewer, preload3DModel } from './3d-viewer.js';
+async function ensureMeshoptReady() {
+  if (typeof window !== 'undefined' && (window.MeshoptDecoder || window.meshopt_decoder)) {
+    const dec = window.MeshoptDecoder || window.meshopt_decoder;
+    if (dec && dec.ready && typeof dec.ready.then === 'function') {
+      await dec.ready;
+    }
+    window.MeshoptDecoder = dec;
+    return;
+  }
+  try {
+    const mod = await import('https://unpkg.com/three@0.128.0/examples/jsm/libs/meshopt_decoder.module.js');
+    const dec = mod.MeshoptDecoder;
+    if (dec && dec.ready && typeof dec.ready.then === 'function') {
+      await dec.ready;
+    }
+    window.MeshoptDecoder = dec;
+  } catch (_) {}
+}
 
 const app = document.getElementById('app');
 
 let currentSlide = 0;
 let currentMedia = 0;
 
-// Preload 3D models
+// Preload 3D models (HTTP only to warm browser cache)
 async function preload3DModels() {
   console.log('[App] Starting 3D model preload...');
   let preloadCount = 0;
@@ -17,7 +34,7 @@ async function preload3DModels() {
         preloadCount++;
         console.log(`[App] Preloading 3D model ${preloadCount}:`, mediaItem.src);
         try {
-          await preload3DModel(mediaItem.src);
+          await fetch(mediaItem.src, { cache: 'reload' });
           console.log('[App] Successfully preloaded 3D model:', mediaItem.src);
         } catch (error) {
           console.error('[App] Failed to preload 3D model:', mediaItem.src, error);
@@ -31,6 +48,15 @@ async function preload3DModels() {
 function render() {
   const slide = slides[currentSlide];
   const mediaItem = slide.media[currentMedia];
+  const absoluteMediaUrl = (() => {
+    try {
+      const base = window.location.origin;
+      const path = mediaItem.src.startsWith('http') ? mediaItem.src : `${base}/${mediaItem.src}`;
+      return encodeURIComponent(path);
+    } catch (_) {
+      return encodeURIComponent(mediaItem.src);
+    }
+  })();
 
   // Media display (image or video)
   let mediaHtml = '';
@@ -54,19 +80,20 @@ function render() {
       ></iframe>
     `;
   } else if (mediaItem.type === '3d') {
+    const cropTopPx = 56;
+    const cropBottomPx = 64;
+    const cropTotalPx = cropTopPx + cropBottomPx;
     mediaHtml = `
-      <div id="3d-container" class="three-container">
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: white;">
-          <div style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid white; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
-          <div style="font-size: 18px; font-weight: 500;">Loading 3D Model...</div>
-          <div style="font-size: 14px; opacity: 0.8; margin-top: 8px;">This may take a few moments</div>
+      <div style="position:relative;width:100%;height:100%;overflow:hidden;background:#f0f0f0;border-radius:4px;">
+        <iframe
+          class="media-asset"
+          style="position:absolute;top:-${cropTopPx}px;left:0;width:100%;height:calc(100% + ${cropTotalPx}px);border:0;background:#f0f0f0;"
+          src="https://gltf-viewer.donmccurdy.com/#model=${absoluteMediaUrl}&kiosk=1"
+          allow="autoplay; fullscreen"
+        ></iframe>
+        <div style="position:absolute;right:12px;bottom:12px;padding:6px 10px;background:rgba(0,0,0,0.55);color:#fff;font:500 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial;border-radius:4px;">
+          Drag: Rotate · Pinch/Wheel: Zoom
         </div>
-        <style>
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        </style>
       </div>
     `;
   }
@@ -115,14 +142,7 @@ function render() {
     </div>
   `;
 
-  // Initialize 3D viewer if needed
-  if (mediaItem.type === '3d') {
-    // Small delay to ensure DOM is ready
-    setTimeout(() => {
-      console.log('[App] Initializing 3D viewer for:', mediaItem.src);
-      init3DViewer('3d-container', mediaItem.src);
-    }, 100);
-  }
+  // No JS init needed for model-viewer
   
   // Set volume for specific videos after they load
   if (mediaItem.type === 'video') {
@@ -149,7 +169,7 @@ function render() {
   };
 }
 
-render();
+ensureMeshoptReady().then(render).catch(render);
 
 loadManifest('/manifest.json', app)
 

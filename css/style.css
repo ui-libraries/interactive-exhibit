@@ -139,6 +139,7 @@ body {
   font-size: clamp(28px, 3vw, 40px);
   letter-spacing: -0.02em;
   color: var(--text);
+  text-transform: uppercase;
 }
 
 .desc-content p {
